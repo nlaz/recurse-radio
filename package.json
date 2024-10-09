@@ -1,0 +1,16 @@
+{
+  "name": "mini-radio",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "build": "bun build src/index.js --minify --outdir build --target bun",
+    "start": "bun src/index.js",
+    "dev": "bun --watch --no-warnings src/index.js"
+  },
+  "engines": {
+    "node": ">=21.0.0"
+  },
+  "dependencies": {
+    "music-metadata": "^10.5.0"
+  }
+}
