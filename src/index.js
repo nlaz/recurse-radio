@@ -1,4 +1,4 @@
-import http from 'http';
+import polka from 'polka';
 import Radio from './radio.js';
 
 let radio;
@@ -6,46 +6,47 @@ let activeRequests = 0;
 
 const port = process.argv[2] ? parseInt(process.argv[2], 10) : 3000;
 
+const server = polka();
+
 function logActiveRequests() {
   console.log(`Active requests: ${activeRequests}`);
 }
 
-const server = http.createServer((req, res) => {
-  if (req.method === 'GET' && req.url === '/trigger') {
-    radio.triggerVoiceProcess();
-    res.writeHead(200);
-    res.end('Triggered');
-  } else if (req.method === 'GET' && req.url === '/') {
-    activeRequests++;
+server.post('/trigger', (req, res) => {
+  const { message } = req.body;
+  radio.triggerVoiceProcess(message);
+
+  res.writeHead(200);
+  res.end('Triggered');
+});
+
+server.get('/', (req, res) => {
+  activeRequests++;
+  logActiveRequests();
+
+  const { id, passthrough } = radio.subscribe();
+
+  req.on('close', () => {
+    radio.unsubscribe(id);
+    activeRequests--;
     logActiveRequests();
+  });
 
-    const { id, passthrough } = radio.subscribe();
+  res.writeHead(200, {
+    'Access-Control-Allow-Methods': 'GET, OPTIONS, HEAD',
+    'Content-Type': 'audio/mpeg',
+    'Cache-Control': 'no-cache, no-store',
+    Connection: 'close',
+    Expires: 'Mon, 26 Jul 1997 05:00:00 GMT',
+  });
 
-    req.on('close', () => {
-      radio.unsubscribe(id);
-      activeRequests--;
-      logActiveRequests();
-    });
+  passthrough.on('data', (chunk) => {
+    res.write(chunk);
+  });
 
-    res.writeHead(200, {
-      'Access-Control-Allow-Methods': 'GET, OPTIONS, HEAD',
-      'Content-Type': 'audio/mpeg',
-      'Cache-Control': 'no-cache, no-store',
-      Connection: 'close',
-      Expires: 'Mon, 26 Jul 1997 05:00:00 GMT',
-    });
-
-    passthrough.on('data', (chunk) => {
-      res.write(chunk);
-    });
-
-    passthrough.on('end', () => {
-      res.end();
-    });
-  } else {
-    res.writeHead(404);
-    res.end('Not Found');
-  }
+  passthrough.on('end', () => {
+    res.end();
+  });
 });
 
 server.listen(port, (err) => {

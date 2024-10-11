@@ -79,10 +79,6 @@ class Radio {
         console.error('Silent process error:', error);
       });
 
-      this.silentProcess.stderr.on('data', (data) => {
-        console.error('Silent process stderr:', data.toString());
-      });
-
       return this.silentProcess;
     } catch (error) {
       console.error('Error starting silent process:', error);
@@ -117,15 +113,8 @@ class Radio {
         console.error('Filter process error:', error);
       });
 
-      this.filterProcess.stderr.on('data', (data) => {
-        console.error('FFmpeg stderr:', data.toString());
-      });
-
       this.filterProcess.on('close', (code, signal) => {
         console.log(`Filter process closed with code ${code} and signal ${signal}`);
-        if (code !== 0) {
-          console.error('FFmpeg process exited with non-zero code. Check the stderr output above for details.');
-        }
       });
 
       return this.filterProcess;
@@ -138,6 +127,10 @@ class Radio {
   startVoiceProcess() {
     console.log('Starting voice process...');
     try {
+      if (this.silentProcess) {
+        this.silentProcess.kill();
+      }
+
       this.voiceProcess = spawn('ffmpeg', [
         '-i', './lib/bumper.mp3',
         '-f', 's16le',
@@ -164,35 +157,67 @@ class Radio {
     }
   }
 
-  startPiperProcess() {
+  startPiperProcess(message) {
     try {
-      const text = "Now playing: Radio Paradise";
+      if (!message) {
+        console.error('No message provided to piper process');
+        return;
+      }
       const model = "en_US-kristin-medium.onnx";
-      this.piperProcess = spawn(`echo '${text} | piper --model models/${model} --output_raw`);
-    
-      this.piperProcess.stdout.pipe(this.passthrough, { end: false });
+      const command = `echo "${message}" | piper --model models/${model} --output_raw`;
+      
+      this.piperProcess = spawn('sh', ['-c', command]);
+
+      this.ffmpegPiperProcess = spawn('ffmpeg', [
+        '-f', 's16le',
+        '-ar', '22050',
+        '-ac', '1',
+        '-i', 'pipe:0',
+        '-acodec', 'pcm_s16le',
+        '-ar', '44100',
+        '-ac', '2',
+        '-f', 's16le',
+        'pipe:1'
+      ]);
+
+      this.piperProcess.stdout.pipe(this.ffmpegPiperProcess.stdin);
+
+      let silentProcessKilled = false;
+
+      this.ffmpegPiperProcess.stdout.on('data', (data) => {
+        if (!silentProcessKilled && this.silentProcess) {
+          console.log('Received data from FFmpeg Piper process, killing silentProcess');
+          this.silentProcess.kill();
+          silentProcessKilled = true;
+        }
+        this.passthrough.write(data);
+      });
     
       this.piperProcess.on('close', (code) => {
         console.log(`Piper process closed with code ${code}`);
+      });
+
+      this.ffmpegPiperProcess.on('close', (code) => {
+        console.log(`FFmpeg Piper process closed with code ${code}`);
         this.startSilentProcess();
       });
 
       this.piperProcess.on('error', (error) => {
         console.error('Piper process error:', error);
       });
+
+      this.ffmpegPiperProcess.on('error', (error) => {
+        console.error('FFmpeg Piper process error:', error);
+      });
     } catch (error) {
       console.error('Error starting piper process:', error);
     }
   }
   
-  triggerVoiceProcess = () => {
+  triggerVoiceProcess = (message) => {
     console.log('Triggering voice process...');
-    if (this.silentProcess) {
-      this.silentProcess.kill();
-    }
-  
     if (process.env.NODE_ENV === 'production') {
-      this.startPiperProcess();
+      this.startPiperProcess(message);
     } else {
       this.startVoiceProcess();
     }
