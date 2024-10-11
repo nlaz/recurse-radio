@@ -11,6 +11,7 @@
     "node": ">=21.0.0"
   },
   "dependencies": {
+    "body-parser": "^1.20.3",
     "polka": "^0.5.2"
   }
 }
