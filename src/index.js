@@ -11,7 +11,11 @@ function logActiveRequests() {
 }
 
 const server = http.createServer((req, res) => {
-  if (req.method === 'GET' && req.url === '/') {
+  if (req.method === 'GET' && req.url === '/trigger') {
+    radio.triggerVoiceProcess();
+    res.writeHead(200);
+    res.end('Triggered');
+  } else if (req.method === 'GET' && req.url === '/') {
     activeRequests++;
     logActiveRequests();
 

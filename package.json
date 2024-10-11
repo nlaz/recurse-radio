@@ -9,8 +9,5 @@
   },
   "engines": {
     "node": ">=21.0.0"
-  },
-  "dependencies": {
-    "music-metadata": "^10.5.0"
   }
 }
