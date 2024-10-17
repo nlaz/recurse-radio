@@ -43,7 +43,7 @@ build
 *.ts
 *.mp4
 *.mpd
-*.mp3
+# *.mp3
 
 .vscode
 .env
