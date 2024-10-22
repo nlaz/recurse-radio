@@ -1,49 +1,62 @@
 import { Transform } from 'stream';
+import Parser from './parser.js';
 
-class Throttle extends Transform {
-  constructor(bytesPerSecond) {
-    super({ bps: bytesPerSecond });
+export default class Throttle extends Transform {
+  constructor(opts) {
+    super(opts);
+    const options = this._normalizeOptions(opts);
 
-    this.chunkSize = Math.floor(bytesPerSecond / 10);
+    this.bps = options.bps;
+    this.chunkSize = Math.max(1, options.chunkSize);
     this.totalBytes = 0;
     this.startTime = Date.now();
+
+    this.parser = new Parser(this);
+    this._passthroughChunk();
+  }
+
+  _normalizeOptions(opts) {
+    const options = typeof opts === 'number' ? { bps: opts } : { ...opts };
+
+    if (options.bps == null) {
+      throw new Error('Must pass a "bps" (bytes-per-second) option');
+    }
+
+    options.lowWaterMark ??= 0;
+    options.highWaterMark ??= 0;
+    options.chunkSize ??= Math.floor(options.bps / 10);
+
+    return options;
+  }
+
+  _passthroughChunk() {
+    this.parser.passthrough(this.chunkSize, this._onchunk.bind(this));
+    this.totalBytes += this.chunkSize;
   }
 
   _transform(chunk, encoding, callback) {
-    this.#processChunk(chunk, callback);
+    this.parser.transform(chunk, this.push.bind(this), callback);
   }
 
-  #processChunk = (chunk, callback) => {
-    const remainingBytes = chunk.length;
-    const bytesToPush = Math.min(remainingBytes, this.chunkSize);
+  _onchunk(output, done) {
+    const elapsedSeconds = (Date.now() - this.startTime) / 1000;
+    const expectedBytes = elapsedSeconds * this.bps;
+    const excessBytes = this.totalBytes - expectedBytes;
 
-    this.push(chunk.slice(0, bytesToPush));
-    this.totalBytes += bytesToPush;
-
-    if (remainingBytes > bytesToPush) {
-      setImmediate(() => this.#processChunk(chunk.slice(bytesToPush), callback));
-    } else {
-      this.#waitForNextChunk(callback);
-    }
-  };
-
-  #waitForNextChunk = (callback) => {
-    const totalSeconds = (Date.now() - this.startTime) / 1000;
-    const expectedBytes = totalSeconds * this.bytesPerSecond;
-
-    if (this.totalBytes > expectedBytes) {
-      const excessBytes = this.totalBytes - expectedBytes;
-      const sleepTime = (excessBytes / this.bytesPerSecond) * 1000;
-
+    if (excessBytes > 0) {
+      const sleepTime = (excessBytes / this.bps) * 1000;
       if (sleepTime > 0) {
-        setTimeout(callback, sleepTime);
+        setTimeout(() => this._continueChunking(done), sleepTime);
       } else {
-        callback();
+        this._continueChunking(done);
       }
     } else {
-      callback();
+      this._continueChunking(done);
     }
-  };
-}
+  }
 
-export default Throttle;
+  _continueChunking(done) {
+    this._passthroughChunk();
+    done();
+  }
+}
