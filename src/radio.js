@@ -72,12 +72,12 @@ class Radio {
       '-ac', '2',
       '-i', 'pipe:0',
       '-f', 'mp3',
-      '-re', 
+      '-re',
       '-i', filepath,
       '-filter_complex',
       '[0:a]asplit=2[vocals_for_sidechain][vocals_for_mix];' +
       `[1:a][vocals_for_sidechain]sidechaincompress=threshold=${THRESHOLD}:ratio=${RATIO}:attack=${ATTACK}:release=${RELEASE}[compressed_main];` +
-      '[compressed_main][vocals_for_mix]amix=inputs=2:duration=longest[mix]',
+      '[compressed_main][vocals_for_mix]amix=inputs=2:duration=shortest[mix]',
       '-map', '[mix]',
       '-ac', '2',
       '-b:a', '196k',
@@ -111,9 +111,9 @@ class Radio {
       '-ac', '2',
       'pipe:1'
     ]);
-  
+
     this.voiceProcess.stdout.pipe(this.passthrough, { end: false });
-  
+
     this.voiceProcess.on('close', (code) => {
       console.log(`Voice process closed with code ${code}`);
       this.startSilentProcess();
@@ -129,7 +129,7 @@ class Radio {
     }
     const model = "en_US-kristin-medium.onnx";
     const command = `echo "${message}" | piper --model models/${model} --output_raw`;
-    
+
     this.piperProcess = spawn('sh', ['-c', command]);
 
     this.voiceProcess = spawn('ffmpeg', [
@@ -155,10 +155,10 @@ class Radio {
       }
       this.passthrough.write(data);
     });
-  
+
     this.voiceProcess.on('close', this.startSilentProcess());
   }
-  
+
   triggerVoiceProcess = (message) => {
     console.log('Triggering voice process...');
     if (process.env.NODE_ENV === 'production') {
