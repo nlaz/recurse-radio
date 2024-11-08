@@ -151,6 +151,7 @@ class Radio {
     ]);
 
     this.piperProcess.stdout.pipe(this.voiceProcess.stdin);
+    this.voiceProcess.on('error', console.error);
 
     let silentProcessKilled = false;
 
@@ -161,8 +162,8 @@ class Radio {
       }
       this.passthrough.write(data);
     });
-
-    this.voiceProcess.on('close', this.startSilentProcess());
+    
+    this.voiceProcess.on('close', () => this.startSilentProcess());
   }
 
   triggerVoiceProcess = (message) => {
@@ -216,7 +217,7 @@ class Radio {
     }
 
     this.isShuttingDown = false;
-    setTimeout(() => this.start(), 10);
+    setTimeout(() => this.start(), 100);
   }
 }
 
