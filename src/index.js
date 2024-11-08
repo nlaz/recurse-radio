@@ -7,9 +7,8 @@ let activeRequests = 0;
 
 const port = process.argv[2] ? parseInt(process.argv[2], 10) : 3000;
 
-function logActiveRequests() {
-  console.log(`Active requests: ${activeRequests}`);
-}
+const logActiveRequests = () => console.log(`Active requests: ${activeRequests}`);
+
 const server = polka().use(parser.json());
 
 server.post('/trigger', (req, res) => {

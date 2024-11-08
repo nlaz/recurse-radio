@@ -1,8 +1,7 @@
-import fs from 'fs';
 import Broadcast from './broadcast.js';
 import { spawn } from 'child_process';
 import { PassThrough } from 'stream';
-import { folder } from './utils.js';
+import { selectRandomTrack } from './utils.js';
 
 const THRESHOLD = 0.02;
 const RATIO = 4;
@@ -21,29 +20,22 @@ class Radio {
   async start() {
     try {
       this.passthrough = new PassThrough();
-      const { currentTrack, filepath } = this.selectRandomTrack();
+      const { currentTrack, filepath } = selectRandomTrack();
       this.filterProcess = this.startFilterProcess(filepath);
       this.silentProcess = this.startSilentProcess();
-      console.log(`Now playing: ${currentTrack}`);
-      this.passthrough.pipe(this.filterProcess.stdin);
+      console.log(`Now playing: ${currentTrack}`, new Date());
 
-      this.filterProcess.stdout.pipe(this.broadcast);
+      this.passthrough.pipe(this.filterProcess.stdin).on('error', (error) => {
+        console.error('Pipe error:', error);
+      });
+
+      this.filterProcess.stdout.pipe(this.broadcast).on('error', (error) => {
+        console.error('Broadcast pipe error:', error);
+      });
     } catch (error) {
-      console.error(error);
+      console.error('Start error:', error);
+      this.stop();
     }
-  }
-
-  selectRandomTrack() {
-    const files = fs.readdirSync(folder);
-    const mp3Files = files.filter((file) => file.toLowerCase().endsWith('.mp3'));
-
-    if (!mp3Files?.length) {
-      throw Error(`No MP3 files found in the folder: ${folder}`);
-    }
-
-    const currentTrack = mp3Files[Math.floor(Math.random() * mp3Files.length)];
-    const filepath = `${folder}/${currentTrack}`;
-    return { currentTrack, filepath };
   }
 
   subscribe() {
@@ -55,15 +47,16 @@ class Radio {
   }
 
   startSilentProcess() {
+    // prettier-ignore
     this.silentProcess = spawn('ffmpeg', [
       '-re',
       '-stream_loop', '-1',
       '-i', './lib/silence.mp3',
-      '-f', 's16le',
-      '-acodec', 'pcm_s16le',
+      '-f', 'mp3',
       '-ar', '44100',
       '-ac', '2',
-      'pipe:1'
+      '-preset', 'ultrafast',
+      'pipe:1',
     ]);
 
     this.silentProcess.stdout.pipe(this.passthrough, { end: false });
@@ -73,11 +66,15 @@ class Radio {
   }
 
   startFilterProcess(filepath) {
+    if (this.filterProcess) {
+      this.filterProcess.kill('SIGKILL');
+    }
+    // prettier-ignore
     this.filterProcess = spawn('ffmpeg', [
+      '-y',
+      '-loglevel', 'error',
       '-re',
-      '-f', 's16le',
-      '-ar', '44100',
-      '-ac', '2',
+      '-f', 'mp3',
       '-i', 'pipe:0',
       '-f', 'mp3',
       '-re',
@@ -90,8 +87,10 @@ class Radio {
       '-ac', '2',
       '-b:a', '196k',
       '-ar', '48000',
+      '-preset', 'ultrafast',
+      '-tune', 'zerolatency',
       '-f', 'mp3',
-      'pipe:1'
+      'pipe:1',
     ]);
 
     this.filterProcess.on('error', console.error);
@@ -109,14 +108,13 @@ class Radio {
       this.silentProcess.kill();
     }
 
+    // prettier-ignore
     this.voiceProcess = spawn('ffmpeg', [
       '-i', './lib/bumper.mp3',
-      '-f', 's16le',
-      '-acodec', 'pcm_s16le',
-      '-filter_complex', 'adelay=500[delayed]',
-      '-map', '[delayed]',
+      '-f', 'mp3',
       '-ar', '44100',
       '-ac', '2',
+      '-preset', 'ultrafast',
       'pipe:1'
     ]);
 
@@ -135,20 +133,20 @@ class Radio {
       console.error('No message provided to piper process');
       return;
     }
-    const model = "en_US-kristin-medium.onnx";
+    const model = 'en_US-kristin-medium.onnx';
     const command = `echo "${message}" | piper --model models/${model} --output_raw`;
 
     this.piperProcess = spawn('sh', ['-c', command]);
 
+    // prettier-ignore
     this.voiceProcess = spawn('ffmpeg', [
       '-f', 's16le',
       '-ar', '22050',
       '-ac', '1',
       '-i', 'pipe:0',
-      '-acodec', 'pcm_s16le',
+      '-f', 'mp3',
       '-ar', '44100',
       '-ac', '2',
-      '-f', 's16le',
       'pipe:1'
     ]);
 
@@ -176,9 +174,49 @@ class Radio {
     }
   }
 
-  stop() {
-    console.log('Stopping...');
-    this.start();
+  killProcess(process) {
+    if (!process) return;
+
+    try {
+      process.stdin?.destroy();
+      process.stdout?.destroy();
+      process.stderr?.destroy();
+      process.kill('SIGKILL');
+    } catch (error) {
+      console.error('Error killing process:', error);
+    }
+  }
+
+  async stop() {
+    console.log('Stopping radio...');
+    this.isShuttingDown = true;
+
+    try {
+      if (this.passthrough) {
+        this.passthrough.unpipe();
+        this.passthrough.destroy();
+        this.passthrough = null;
+      }
+
+      if (this.silentProcess) {
+        this.killProcess(this.silentProcess);
+        this.silentProcess = null;
+      }
+
+      if (this.filterProcess) {
+        this.killProcess(this.filterProcess);
+        this.filterProcess = null;
+      }
+
+      if (this.broadcast) {
+        this.broadcast.removeAllListeners();
+      }
+    } catch (error) {
+      console.error('Error during cleanup:', error);
+    }
+
+    this.isShuttingDown = false;
+    setTimeout(() => this.start(), 10);
   }
 }
 

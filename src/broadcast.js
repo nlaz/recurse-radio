@@ -7,6 +7,7 @@ class Broadcast extends Writable {
     super();
     this.subscribers = new Map();
     this.throttler = this.#setupThrottler();
+    this.firstChunk = true;
   }
 
   subscribe() {
@@ -27,6 +28,10 @@ class Broadcast extends Writable {
   }
 
   broadcast(chunk) {
+    if (this.firstChunk) {
+      console.log('First chunk', new Date());
+      this.firstChunk = false;
+    }
     for (const passthrough of this.subscribers.values()) {
       passthrough.write(chunk);
     }
