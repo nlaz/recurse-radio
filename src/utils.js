@@ -9,3 +9,5 @@ export function generateSessionId() {
     .map(() => POSSIBLE_CHARS.charAt((Math.random() * numPossible) | 0));
   return sessionIDArray.join('');
 }
+
+export const folder = process.argv[2] ? process.argv[2] : './library';

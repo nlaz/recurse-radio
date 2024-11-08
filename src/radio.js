@@ -2,6 +2,7 @@ import fs from 'fs';
 import Broadcast from './broadcast.js';
 import { spawn } from 'child_process';
 import { PassThrough } from 'stream';
+import { folder } from './utils.js';
 
 const THRESHOLD = 0.02;
 const RATIO = 4;
@@ -20,8 +21,7 @@ class Radio {
   async start() {
     try {
       this.passthrough = new PassThrough();
-      const currentTrack = this.selectRandomTrack();
-      const filepath = `./library/${currentTrack}`;
+      const { currentTrack, filepath } = this.selectRandomTrack();
       this.filterProcess = this.startFilterProcess(filepath);
       this.silentProcess = this.startSilentProcess();
       console.log(`Now playing: ${currentTrack}`);
@@ -34,8 +34,16 @@ class Radio {
   }
 
   selectRandomTrack() {
-    const files = fs.readdirSync('./library');
-    return files[Math.floor(Math.random() * files.length)];
+    const files = fs.readdirSync(folder);
+    const mp3Files = files.filter((file) => file.toLowerCase().endsWith('.mp3'));
+
+    if (!mp3Files?.length) {
+      throw Error(`No MP3 files found in the folder: ${folder}`);
+    }
+
+    const currentTrack = mp3Files[Math.floor(Math.random() * mp3Files.length)];
+    const filepath = `${folder}/${currentTrack}`;
+    return { currentTrack, filepath };
   }
 
   subscribe() {
@@ -170,7 +178,7 @@ class Radio {
 
   stop() {
     console.log('Stopping...');
-    this.run();
+    this.start();
   }
 }
 
