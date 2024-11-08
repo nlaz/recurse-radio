@@ -1,6 +1,6 @@
 import { PassThrough, Writable } from 'stream';
-import Throttle from './throttle.js';
 import { generateSessionId, BITRATE } from './utils.js';
+import { Throttler } from 'throttler';
 
 class Broadcast extends Writable {
   constructor() {
@@ -37,7 +37,7 @@ class Broadcast extends Writable {
   }
 
   #setupThrottler = () => {
-    const throttler = new Throttle(BITRATE / 8);
+    const throttler = new Throttler(BITRATE / 8);
     throttler.on('data', (chunk) => {
       this.broadcast(chunk);
     });
