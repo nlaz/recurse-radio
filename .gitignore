@@ -44,6 +44,9 @@ build
 *.mp4
 *.mpd
 *.mp3
+*.onnx
+*.onnx
+*.onnx.json
 
 .vscode
 .env

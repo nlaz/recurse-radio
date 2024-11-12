@@ -5,15 +5,15 @@ import Radio from './radio.js';
 let radio;
 let activeRequests = 0;
 
-const port = process.argv[2] ? parseInt(process.argv[2], 10) : 3000;
+const port = 80;
 
 const logActiveRequests = () => console.log(`Active requests: ${activeRequests}`);
 
 const server = polka().use(parser.json());
 
 server.post('/trigger', (req, res) => {
-  const { message } = req.body;
-  radio.triggerVoiceProcess(message);
+  const { message, model } = req.body;
+  radio.triggerVoiceProcess(message, model);
 
   res.writeHead(200);
   res.end('Triggered');

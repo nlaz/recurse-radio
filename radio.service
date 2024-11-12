@@ -1,0 +1,17 @@
+[Unit]
+Description=Starts web process for recurse-radio
+after=software-software.service
+wants=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/home/pi/recurse-radio
+ExecStart=bun run device
+StandardOutput=file:/home/pi/recurse-radio/logs/radio-output.log
+StandardError=file:/home/pi/recurse-radio/logs/radio-error.log
+Restart=always
+User=root
+Group=root
+
+[Install]
+WantedBy=multi-user.target
