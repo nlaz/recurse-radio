@@ -1,6 +1,6 @@
   import Broadcast from './broadcast.js';
   import { spawn } from 'child_process';
-  import { PassThrough } from 'stream';
+  import { PassThrough, pipeline } from 'stream';
   import { selectRandomTrack } from './utils.js';
 
   const THRESHOLD = 0.02;
@@ -24,15 +24,43 @@
         const { currentTrack, filepath } = selectRandomTrack();
         this.filterProcess = this.startFilterProcess(filepath);
         this.silentProcess = this.startSilentProcess();
+        this.systemAudioProcess = this.startSystemAudioProcess();
         console.log(`Now playing: ${currentTrack}`, new Date());
 
         this.passthrough.pipe(this.filterProcess.stdin).on('error', (error) => {
           console.error('Pipe error:', error);
         });
 
-        this.filterProcess.stdout.pipe(this.broadcast).on('error', (error) => {
-          console.error('Broadcast pipe error:', error);
-        });
+
+        // Create a PassThrough stream to duplicate the output
+        const outputStream = new PassThrough();
+
+        // Pipe source to PassThrough
+        pipeline(
+          this.filterProcess.stdout,
+          outputStream,
+          (err) => {
+            if (err) console.error('Source pipeline error:', err);
+          }
+        );
+
+        // Pipe to first destination
+        pipeline(
+          outputStream,
+          this.broadcast,
+          (err) => {
+            if (err) console.error('Broadcast pipeline error:', err);
+          }
+        );
+  
+        // Pipe to second destination
+        pipeline(
+          outputStream,
+          this.systemAudioProcess.stdin,
+          (err) => {
+            if (err) console.error('System audio pipeline error:', err);
+          }
+        );
       } catch (error) {
         console.error('Start error:', error);
         this.stop();
@@ -45,6 +73,28 @@
 
     unsubscribe(id) {
       this.broadcast.unsubscribe(id);
+    }
+
+    startSystemAudioProcess() {
+      const systemAudioProcess = spawn('ffplay', [
+        '-f', 'mp3',           // Format: signed 16-bit little-endian
+        '-ar', '48000',          // Match sample rate with filter process (48kHz)
+        '-ac', '2',              // Match number of channels (stereo)
+        '-i', 'pipe:0',          // Read from stdin
+        '-af', 'volume=0.3',    // Keep existing volume adjustment
+        '-nodisp'                // Don't display video window
+      ]);
+    
+  
+      systemAudioProcess.on('error', (error) => {
+        console.error('System audio process error:', error);
+      });
+
+      systemAudioProcess.on('data', (chunk) => {
+        console.log('systemAudioProcess', chunk);
+      });
+
+      return systemAudioProcess;
     }
 
     startSilentProcess() {
@@ -226,6 +276,11 @@
         if (this.silentProcess) {
           this.killProcess(this.silentProcess);
           this.silentProcess = null;
+        }
+
+        if (this.systemAudioProcess) {
+          this.killProcess(this.systemAudioProcess);
+          this.systemAudioProcess = null;
         }
 
         if (this.filterProcess) {
