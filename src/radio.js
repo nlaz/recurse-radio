@@ -31,10 +31,7 @@ class Radio {
 
     this.filter = this.startFilterProcess(filepath);
     this.silent = this.startSilentProcess();
-
-    if (process.env.NODE_ENV === 'production') {
-      this.system = this.startSystemAudioProcess();
-    }
+    this.system = this.startSystemAudioProcess();
 
     console.log(`Now playing: ${currentTrack}`, new Date());
   }
@@ -46,9 +43,7 @@ class Radio {
       this.createPipeline(this.passthrough, this.filter.stdin),
       this.createPipeline(this.filter.stdout, outputStream),
       this.createPipeline(outputStream, this.broadcast),
-      ...(process.env.NODE_ENV === 'production'
-        ? [this.createPipeline(outputStream, this.system.stdin)]
-        : [])
+      // this.createPipeline(outputStream, this.system.stdin)
     ]);
   }
 
@@ -74,15 +69,7 @@ class Radio {
 
   startSystemAudioProcess() {
     const systemAudioProcess = ffmpeg.startSystemAudioProcess();
-
-    systemAudioProcess.on('error', (error) => {
-      console.error('System audio process error:', error);
-    });
-
-    systemAudioProcess.on('data', (chunk) => {
-      console.log('systemAudioProcess', chunk);
-    });
-
+    systemAudioProcess.on('error', console.error);
     return systemAudioProcess;
   }
 
@@ -102,10 +89,7 @@ class Radio {
     this.filterProcess = ffmpeg.startFilterProcess(filepath);
 
     this.filterProcess.on('error', console.error);
-    this.filterProcess.on('close', (code) => {
-      console.log(`Filter process closed...`);
-      this.stop();
-    });
+    this.filterProcess.on('close', () => this.stop());
 
     return this.filterProcess;
   }
@@ -117,43 +101,32 @@ class Radio {
     }
 
     this.voiceProcess = ffmpeg.startVoiceProcess();
-
     this.voiceProcess.stdout.pipe(this.passthrough, { end: false });
-
-    this.voiceProcess.on('close', (code) => {
-      console.log(`Voice process closed with code ${code}`);
-      this.startSilentProcess();
-    });
-
+    this.voiceProcess.on('close', () => this.startSilentProcess());
     this.voiceProcess.on('error', console.error);
   }
 
-  startPiperProcess(message, model = 'kristin') {
-    if (!message) {
-      throw new Error('No message provided to piper process');
-    }
-
+  startPiperProcess(message = '', model = 'kristin') {
     const command = `echo "${message}" | piper --model models/${model}.onnx --output_raw`;
     this.piper = spawn('sh', ['-c', command]);
-
     this.setupPiperProcessHandlers();
   }
 
   setupPiperProcessHandlers() {
     this.voice = ffmpeg.startVoiceProcess();
     this.piper.stdout.pipe(this.voice.stdin);
+    this.silentProcessKilled = false;
 
-    let silentProcessKilled = false;
-
-    this.voice.stdout.on('data', (data) => {
-      if (!silentProcessKilled && this.silent) {
-        this.silent.kill();
-        silentProcessKilled = true;
-      }
-      this.passthrough.write(data);
-    });
-
+    this.voice.stdout.on('data', (data) => writeVoiceToPassthrough(data));
     this.voice.on('close', () => this.startSilentProcess());
+  }
+
+  writeVoiceToPassthrough = (data) => {
+    if (!this.silentProcessKilled && this.silent) {
+      this.silent.kill();
+      this.silentProcessKilled = true;
+    }
+    this.passthrough.write(data);
   }
 
   triggerVoiceProcess = (message, model) => {
@@ -166,10 +139,7 @@ class Radio {
   };
 
   async stop() {
-    console.log('Stopping radio...');
-
     await this.cleanup();
-
     setTimeout(() => this.start(), 200);
   }
 
