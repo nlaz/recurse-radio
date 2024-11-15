@@ -129,50 +129,31 @@ class Radio {
   }
 
   startPiperProcess(message, model = 'kristin') {
-    try {
-      if (!message) {
-        console.error('No message provided to piper process');
-        return;
-      }
-      console.log('Starting piper process, message:', message);
-      const command = `echo "${message}" | piper --model models/${model}.onnx --output_raw`;
-
-      this.piperProcess = spawn('sh', ['-c', command]);
-
-      this.piperProcess.stdout.on('data', (data) => {
-        console.log('piper process output:', data.toString());
-      });
-
-      this.piperProcess.stderr.on('data', (error) => {
-        console.error('piper process error:', error.toString());
-      });
-
-      this.piperProcess.on('error', (error) => {
-        console.error('piper process spawn error:', error);
-      });
-
-      this.voiceProcess = ffmpeg.startVoiceProcess();
-
-      this.piperProcess.stdout.pipe(this.voiceProcess.stdin);
-
-      this.voiceProcess.on('error', (error) => {
-        console.error('Voice process error:', error);
-      });
-
-      let silentProcessKilled = false;
-
-      this.voiceProcess.stdout.on('data', (data) => {
-        if (!silentProcessKilled && this.silentProcess) {
-          this.silentProcess.kill();
-          silentProcessKilled = true;
-        }
-        this.passthrough.write(data);
-      });
-
-      this.voiceProcess.on('close', () => this.startSilentProcess());
-    } catch (error) {
-      console.error('Error starting piper process', error);
+    if (!message) {
+      throw new Error('No message provided to piper process');
     }
+
+    const command = `echo "${message}" | piper --model models/${model}.onnx --output_raw`;
+    this.piper = spawn('sh', ['-c', command]);
+
+    this.setupPiperProcessHandlers();
+  }
+
+  setupPiperProcessHandlers() {
+    this.voice = ffmpeg.startVoiceProcess();
+    this.piper.stdout.pipe(this.voice.stdin);
+
+    let silentProcessKilled = false;
+
+    this.voice.stdout.on('data', (data) => {
+      if (!silentProcessKilled && this.silent) {
+        this.silent.kill();
+        silentProcessKilled = true;
+      }
+      this.passthrough.write(data);
+    });
+
+    this.voice.on('close', () => this.startSilentProcess());
   }
 
   triggerVoiceProcess = (message, model) => {
