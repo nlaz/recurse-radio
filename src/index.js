@@ -13,6 +13,7 @@ const server = polka().use(parser.json());
 
 server.post('/trigger', (req, res) => {
   const { message, model } = req.body;
+  console.log('Triggering voice process...');
   radio.triggerVoiceProcess(message, model);
 
   res.writeHead(200);

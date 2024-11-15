@@ -130,7 +130,6 @@ class Radio {
   }
 
   triggerVoiceProcess = (message, model) => {
-    console.log('Triggering voice process...');
     if (process.env.NODE_ENV === 'production') {
       this.startPiperProcess(message, model);
     } else {
