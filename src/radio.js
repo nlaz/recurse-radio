@@ -4,57 +4,64 @@ import { PassThrough, pipeline } from 'stream';
 import { selectRandomTrack } from './utils.js';
 import * as ffmpeg from './ffmpeg.js';
 
-const THRESHOLD = 0.02;
-const RATIO = 4;
-const ATTACK = 20;
-const RELEASE = 300;
-
 class Radio {
   constructor() {
-    this.ffmpeg = null;
     this.broadcast = new Broadcast();
-    this.audioStream = null;
     this.currentTrack = null;
+    this.filter = null;
+    this.silent = null;
     this.passthrough = null;
+    this.system = null;
     this.start();
   }
 
   async start() {
     try {
-      this.passthrough = new PassThrough();
-      const { currentTrack, filepath } = selectRandomTrack();
-      this.filterProcess = this.startFilterProcess(filepath);
-      this.silentProcess = this.startSilentProcess();
-
-      if (process.env.NODE_ENV === 'production') {
-        this.systemAudioProcess = this.startSystemAudioProcess();
-      }
-
-      console.log(`Now playing: ${currentTrack}`, new Date());
-
-      this.passthrough.pipe(this.filterProcess.stdin).on('error', (error) => {
-        console.error('Pipe error:', error);
-      });
-
-      const outputStream = new PassThrough();
-
-      pipeline(this.filterProcess.stdout, outputStream, (err) => {
-        if (err) console.error('Source pipeline error:', err);
-      });
-
-      pipeline(outputStream, this.broadcast, (err) => {
-        if (err) console.error('Broadcast pipeline error:', err);
-      });
-
-      if (process.env.NODE_ENV === 'production') {
-        pipeline(outputStream, this.systemAudioProcess.stdin, (err) => {
-          if (err) console.error('System audio pipeline error:', err);
-        });
-      }
+      await this.initializeStreams();
+      await this.setupPipelines();
     } catch (error) {
       console.error('Start error:', error);
-      this.stop();
+      await this.stop();
     }
+  }
+
+  async initializeStreams() {
+    this.passthrough = new PassThrough();
+    const { currentTrack, filepath } = selectRandomTrack();
+
+    this.filter = this.startFilterProcess(filepath);
+    this.silent = this.startSilentProcess();
+
+    if (process.env.NODE_ENV === 'production') {
+      this.system = this.startSystemAudioProcess();
+    }
+
+    console.log(`Now playing: ${currentTrack}`, new Date());
+  }
+
+  async setupPipelines() {
+    const outputStream = new PassThrough();
+
+    await Promise.all([
+      this.createPipeline(this.passthrough, this.filter.stdin),
+      this.createPipeline(this.filter.stdout, outputStream),
+      this.createPipeline(outputStream, this.broadcast),
+      ...(process.env.NODE_ENV === 'production'
+        ? [this.createPipeline(outputStream, this.system.stdin)]
+        : [])
+    ]);
+  }
+
+  createPipeline(source, destination) {
+    return new Promise((resolve, reject) => {
+      pipeline(source, destination, (err) => {
+        if (err) {
+          console.error('Pipeline error:', err);
+          reject(err);
+        }
+        resolve();
+      });
+    });
   }
 
   subscribe() {
@@ -179,39 +186,48 @@ class Radio {
 
   async stop() {
     console.log('Stopping radio...');
-    this.isShuttingDown = true;
 
+    await this.cleanup();
+
+    setTimeout(() => this.start(), 200);
+  }
+
+  async cleanup() {
     try {
-      if (this.passthrough) {
-        this.passthrough.unpipe();
-        this.passthrough.destroy();
-        this.passthrough = null;
-      }
-
-      if (this.silentProcess) {
-        ffmpeg.killProcess(this.silentProcess);
-        this.silentProcess = null;
-      }
-
-      if (this.systemAudioProcess) {
-        ffmpeg.killProcess(this.systemAudioProcess);
-        this.systemAudioProcess = null;
-      }
-
-      if (this.filterProcess) {
-        ffmpeg.killProcess(this.filterProcess);
-        this.filterProcess = null;
-      }
-
-      if (this.broadcast) {
-        this.broadcast.removeAllListeners();
-      }
+      this.cleanupStreams();
+      this.cleanupProcesses();
     } catch (error) {
       console.error('Error during cleanup:', error);
     }
+  }
 
-    this.isShuttingDown = false;
-    setTimeout(() => this.start(), 200);
+  cleanupStreams() {
+    if (this.passthrough) {
+      this.passthrough.unpipe();
+      this.passthrough.destroy();
+      this.passthrough = null;
+    }
+
+    if (this.broadcast) {
+      this.broadcast.removeAllListeners();
+    }
+  }
+
+  cleanupProcesses() {
+    if (this.silentProcess) {
+      ffmpeg.killProcess(this.silentProcess);
+      this.silentProcess = null;
+    }
+
+    if (this.systemAudioProcess) {
+      ffmpeg.killProcess(this.systemAudioProcess);
+      this.systemAudioProcess = null;
+    }
+
+    if (this.filterProcess) {
+      ffmpeg.killProcess(this.filterProcess);
+      this.filterProcess = null;
+    }
   }
 }
 
