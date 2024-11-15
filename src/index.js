@@ -5,7 +5,7 @@ import Radio from './radio.js';
 let radio;
 let activeRequests = 0;
 
-const port = 80;
+const port = process.env.NODE_ENV === 'production' ? 80 : 3000;
 
 const logActiveRequests = () => console.log(`Active requests: ${activeRequests}`);
 

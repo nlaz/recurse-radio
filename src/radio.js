@@ -24,13 +24,16 @@
         const { currentTrack, filepath } = selectRandomTrack();
         this.filterProcess = this.startFilterProcess(filepath);
         this.silentProcess = this.startSilentProcess();
-        this.systemAudioProcess = this.startSystemAudioProcess();
+
+        if (process.env.NODE_ENV === 'production') {
+          this.systemAudioProcess = this.startSystemAudioProcess();
+        }
+
         console.log(`Now playing: ${currentTrack}`, new Date());
 
         this.passthrough.pipe(this.filterProcess.stdin).on('error', (error) => {
           console.error('Pipe error:', error);
         });
-
 
         // Create a PassThrough stream to duplicate the output
         const outputStream = new PassThrough();
@@ -52,15 +55,16 @@
             if (err) console.error('Broadcast pipeline error:', err);
           }
         );
-  
-        // Pipe to second destination
-        pipeline(
-          outputStream,
-          this.systemAudioProcess.stdin,
-          (err) => {
-            if (err) console.error('System audio pipeline error:', err);
-          }
-        );
+
+        if (process.env.NODE_ENV === 'production') {
+          pipeline(
+            outputStream,
+            this.systemAudioProcess.stdin,
+            (err) => {
+              if (err) console.error('System audio pipeline error:', err);
+            }
+          );
+        }
       } catch (error) {
         console.error('Start error:', error);
         this.stop();
@@ -84,8 +88,7 @@
         '-af', 'volume=0.3',    // Keep existing volume adjustment
         '-nodisp'                // Don't display video window
       ]);
-    
-  
+
       systemAudioProcess.on('error', (error) => {
         console.error('System audio process error:', error);
       });
