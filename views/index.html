@@ -11,7 +11,7 @@
   </head>
   <body class="helvetica bg-gray-100 py-48 px-3 flex flex-col justify-center items-center">
     <div class="relative flex flex-col items-center border border-green-600 w-[300px] py-10 pb-[90px] bg-white shadow">
-      <marquee scrollamount="4" class="absolute ibm-plex-mono top-0 left-0 right-0 bg-green-600 text-white border-b border-green-700 shadow-sm text-sm py-[2px]">Welcome Recursers!</marquee>
+      <marquee id="marquee" scrollamount="4" class="absolute ibm-plex-mono top-0 left-0 right-0 bg-green-600 text-white border-b border-green-700 shadow-sm text-sm py-[2px]">Welcome Recursers!</marquee>
       <div onclick="playAudio()" class="absolute bg-gray-300 hover:bg-gray-400 transition-all duration-75 right-4 w-6 h-6 flex items-center justify-center rounded-full cursor-pointer">
         <img id="icon" src="icons/play-fill.svg" class="w-3 h-3"/>
       </div>
@@ -28,10 +28,22 @@
   <script>
     const audio = document.getElementById('audio');
     const icon = document.getElementById('icon');
+    const marquee = document.getElementById('marquee');
+
+    const updateTrack = () => {
+      if (audio.paused) return;
+
+      fetch('/info').then(data => data.json()).then(data => {
+        marquee.innerText = `Currently playing: ${data.currentTrack.replace('.mp3', '')}`;
+      });
+    }
+
+    setTimeout(updateTrack, 1000);
 
     const playAudio = () => {
       if (audio.paused) {
         audio.play();
+        updateTrack()
       } else {
         audio.pause();
       }
