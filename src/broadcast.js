@@ -7,6 +7,8 @@ class Broadcast extends Writable {
     super();
     this.subscribers = new Map();
     this.throttler = this.#setupThrottler();
+    this.chunkBuffer = [];
+    this.bufferSize = 20;
   }
 
   subscribe() {
@@ -14,6 +16,10 @@ class Broadcast extends Writable {
     const passthrough = PassThrough();
 
     this.subscribers.set(id, passthrough);
+
+    for (const chunk of this.chunkBuffer) {
+      passthrough.write(chunk);
+    }
 
     return { id, passthrough };
   }
@@ -27,6 +33,11 @@ class Broadcast extends Writable {
   }
 
   broadcast(chunk) {
+    this.chunkBuffer.push(chunk);
+    if (this.chunkBuffer.length > this.maxBufferSize) {
+      this.chunkBuffer.shift();
+    }
+
     for (const passthrough of this.subscribers.values()) {
       passthrough.write(chunk);
     }
