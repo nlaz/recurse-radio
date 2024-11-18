@@ -22,7 +22,6 @@ class Radio {
       await this.setupPipelines();
     } catch (error) {
       console.error('Start error:', error);
-      await this.stop();
     }
   }
 
@@ -33,7 +32,7 @@ class Radio {
     this.currentTrack = currentTrack;
     this.filter = this.startFilterProcess(filepath);
     this.silent = this.startSilentProcess();
-    this.system = this.startSystemAudioProcess();
+    // this.system = this.startSystemAudioProcess();
 
     console.log(`Now playing: ${currentTrack}`, new Date());
   }
@@ -41,24 +40,10 @@ class Radio {
   async setupPipelines() {
     const outputStream = new PassThrough();
 
-    await Promise.all([
-      this.createPipeline(this.passthrough, this.filter.stdin),
-      this.createPipeline(this.filter.stdout, outputStream),
-      this.createPipeline(outputStream, this.broadcast),
-      // this.createPipeline(outputStream, this.system.stdin)
-    ]);
-  }
-
-  createPipeline(source, destination) {
-    return new Promise((resolve, reject) => {
-      pipeline(source, destination, (err) => {
-        if (err) {
-          console.error('Pipeline error:', err);
-          reject(err);
-        }
-        resolve();
-      });
-    });
+    this.passthrough.pipe(this.filter.stdin);
+    this.filter.stdout.pipe(outputStream);
+    outputStream.pipe(this.broadcast);
+    // outputStream.pipe(this.system.stdin);
   }
 
   subscribe() {
@@ -144,8 +129,14 @@ class Radio {
   };
 
   async stop() {
-    await this.cleanup();
-    setTimeout(() => this.start(), 200);
+    let timer;
+    try {
+      await this.cleanup();
+      timer = setTimeout(() => this.start(), 50);
+    } catch (error) {
+      clearTimeout(timer);
+      console.log('Error during stop:', error);
+    }
   }
 
   async cleanup() {
@@ -154,6 +145,7 @@ class Radio {
       this.cleanupProcesses();
     } catch (error) {
       console.error('Error during cleanup:', error);
+      throw error;
     }
   }
 
