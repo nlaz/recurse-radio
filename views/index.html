@@ -3,25 +3,23 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link rel="icon" type="image/png" href="favicon.png" />
-
     <script src="vendors/tailwind.min.js"></script>
     <link rel="stylesheet" href="styles.css" />
     <title>Recurse Radio</title>
   </head>
   <body class="helvetica bg-gray-100 py-48 px-3 flex flex-col justify-center items-center">
-    <div class="relative flex flex-col items-center border border-green-600 w-[300px] py-10 pb-[90px] bg-white shadow">
-      <marquee id="marquee" scrollamount="4" class="absolute ibm-plex-mono top-0 left-0 right-0 bg-green-600 text-white border-b border-green-700 shadow-sm text-sm py-[2px]">Welcome Recursers!</marquee>
+    <div class="relative flex flex-col items-center border border-green-600 w-[305px] py-10 pb-0 bg-white shadow">
+      <marquee id="marquee" scrollamount="4" class="absolute ibm-plex-mono top-0 left-0 right-0 bg-green-600 text-white border-b border-green-700 shadow-sm text-[13px] py-[2px]">Welcome Recursers!</marquee>
       <div onclick="playAudio()" class="absolute bg-gray-300 hover:bg-gray-400 transition-all duration-75 right-4 w-6 h-6 flex items-center justify-center rounded-full cursor-pointer">
         <img id="icon" src="icons/play-fill.svg" class="w-3 h-3"/>
       </div>
       <img onclick="playAudio()" src="radio.png" alt="Radio" class="w-20 h-20 mb-4 mt-4 z-10 cursor-pointer" />
       <h1 class="text-center librebaskerville text-lg mb-2 text-green-600">Recurse Radio</h1>
       <p class="mx-4 text-black text-sm text-justify">Thanks for tuning in! Recurse Radio is a radio station that lives at the Recurse Center in Brooklyn. The entire service runs locally on a Raspberry Pi. <a class="cursor-pointer hover:underline" href="https://github.com/nlaz/recurse-radio">Learn more...</a></p>
-
-      <div class="flex justify-center text-green-600 text-sm absolute bottom-5">
+      <div class="flex justify-center text-green-600 text-sm absolute bottom-[-38px]">
         <a href="">Login</a> ∙ <a href="">About</a>
       </div>
+      <canvas id="visualizer" width="303" height="80" class="mt-4"></canvas>
     </div>
     <audio controls preload="none" id="audio" src="/radio" class="hidden" />
   </body>
@@ -29,32 +27,88 @@
     const audio = document.getElementById('audio');
     const icon = document.getElementById('icon');
     const marquee = document.getElementById('marquee');
+    const canvas = document.getElementById('visualizer');
+    const ctx = canvas.getContext('2d');
+
+    let audioContext;
+    let analyser;
+    let animationId;
+    let isAnalyzerInitialized = false;
 
     const updateTrack = () => {
       if (audio.paused) return;
-
       fetch('/info').then(data => data.json()).then(data => {
         marquee.innerText = `Currently playing: ${data.currentTrack.replace('.mp3', '')}`;
       });
     }
 
-    setTimeout(updateTrack, 1000);
+    const initializeAnalyzer = () => {
+      if (isAnalyzerInitialized) return;
+
+      audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      analyser = audioContext.createAnalyser();
+      analyser.fftSize = 256;
+      const audioSource = audioContext.createMediaElementSource(audio);
+      audioSource.connect(analyser);
+      analyser.connect(audioContext.destination);
+
+      isAnalyzerInitialized = true;
+    }
+
+    const drawVisualizer = () => {
+      if (!analyser) return;
+
+      const bufferLength = analyser.frequencyBinCount;
+      const dataArray = new Uint8Array(bufferLength);
+      analyser.getByteFrequencyData(dataArray);
+
+      ctx.fillStyle = 'white';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      const barWidth = (canvas.width / bufferLength) * 2.5;
+      let x = 0;
+
+      for (let i = 0; i < bufferLength; i++) {
+        const barHeight = (dataArray[i] / 255) * canvas.height;
+
+        const gradient = ctx.createLinearGradient(0, canvas.height, 0, canvas.height - barHeight);
+        gradient.addColorStop(0, 'rgba(22, 163, 74, 0.8)'); // Green-600
+        gradient.addColorStop(1, 'rgba(22, 163, 74, 0.4)');
+
+        ctx.fillStyle = gradient;
+        ctx.fillRect(x, canvas.height - barHeight, barWidth, barHeight);
+
+        x += barWidth + 1;
+      }
+
+      animationId = requestAnimationFrame(drawVisualizer);
+    }
 
     const playAudio = () => {
       if (audio.paused) {
         audio.play();
-        updateTrack()
+        initializeAnalyzer();
+        updateTrack();
+        drawVisualizer();
       } else {
         audio.pause();
+        if (animationId) {
+          cancelAnimationFrame(animationId);
+        }
       }
     }
 
+    setInterval(updateTrack, 1000);
+
     audio.addEventListener('play', () => {
-      icon.src = "icons/pause-fill.svg"
+      icon.src = "icons/pause-fill.svg";
     });
 
     audio.addEventListener('pause', () => {
-      icon.src = "icons/play-fill.svg"
+      icon.src = "icons/play-fill.svg";
     });
+
+    ctx.fillStyle = 'white';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
   </script>
 </html>
