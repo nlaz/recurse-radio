@@ -12,6 +12,7 @@ class Radio {
     this.silent = null;
     this.passthrough = null;
     this.system = null;
+    this.currentTrack = null;
     this.start();
   }
 
@@ -29,6 +30,7 @@ class Radio {
     this.passthrough = new PassThrough();
     const { currentTrack, filepath } = selectRandomTrack();
 
+    this.currentTrack = currentTrack;
     this.filter = this.startFilterProcess(filepath);
     this.silent = this.startSilentProcess();
     this.system = this.startSystemAudioProcess();
@@ -65,6 +67,10 @@ class Radio {
 
   unsubscribe(id) {
     this.broadcast.unsubscribe(id);
+  }
+
+  listeners() {
+    return this.broadcast.subscribers.size;
   }
 
   startSystemAudioProcess() {

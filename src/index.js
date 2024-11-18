@@ -11,12 +11,22 @@ const dir = path.join(__dirname, '..', 'public');
 const serve = require('serve-static')(dir);
 const port = process.env.NODE_ENV === 'production' ? 80 : 3000;
 
-const logActiveRequests = () => console.log(`Active requests: ${activeRequests}`);
-
 const server = polka()
   .use(serve)
   .use(parser.json())
   .use(ejs({ ext: "html" }));
+
+server.get("/", (req, res) => {
+  res.render("index");
+});
+
+server.get('/info', (req, res) => {
+  res.writeHead(200, { 'Content-Type': 'application/json' });
+  res.end(JSON.stringify({
+    currentTrack: radio.currentTrack,
+    listeners: radio.listeners(),
+  }));
+});
 
 server.post('/trigger', (req, res) => {
   const { message, model } = req.body;
@@ -27,21 +37,10 @@ server.post('/trigger', (req, res) => {
   res.end('Triggered');
 });
 
-server.get("/", (req, res) => {
-  res.render("index");
-})
-
 server.get('/radio', (req, res) => {
-  activeRequests++;
-  logActiveRequests();
-
   const { id, passthrough } = radio.subscribe();
 
-  req.on('close', () => {
-    radio.unsubscribe(id);
-    activeRequests--;
-    logActiveRequests();
-  });
+  req.on('close', () => radio.unsubscribe(id));
 
   res.writeHead(200, {
     'Access-Control-Allow-Methods': 'GET, OPTIONS, HEAD',

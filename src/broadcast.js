@@ -8,7 +8,7 @@ class Broadcast extends Writable {
     this.subscribers = new Map();
     this.throttler = this.#setupThrottler();
     this.chunkBuffer = [];
-    this.bufferSize = 20;
+    this.bufferSize = 10;
   }
 
   subscribe() {
@@ -48,7 +48,7 @@ class Broadcast extends Writable {
   }
 
   #setupThrottler = () => {
-    const throttler = new Throttler(BITRATE / 8);
+    const throttler = new Throttler({ bps: BITRATE / 8, chunkSize: 1024 });
     throttler.on('data', (chunk) => {
       this.broadcast(chunk);
     });
