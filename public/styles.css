@@ -1,0 +1,46 @@
+
+@font-face {
+  font-family: "LibreBaskerville-Regular";
+  font-style: normal;
+  font-weight: 400;
+  src: url(/fonts/LibreBaskerville-Regular.ttf) format("truetype");
+}
+
+
+@font-face {
+  font-family: "IBMPlexMono-Regular";
+  font-style: normal;
+  font-weight: 400;
+  src: url(/fonts/IBMPlexMono-Regular.ttf) format("truetype");
+}
+
+@font-face {
+  font-family: "IBMPlexSans-Regular";
+  font-style: normal;
+  font-weight: 400;
+  src: url(/fonts/IBMPlexSans-Regular.ttf) format("truetype");
+}
+
+.librebaskerville {
+  font-family: "LibreBaskerville-Regular", serif;
+}
+
+.ibm-plex-mono {
+  font-family: "IBMPlexMono-Regular", monospace;
+}
+
+.ibm-plex-sans {
+  font-family: "IBMPlexSans-Regular", monospace;
+}
+
+.helvetica {
+  font-family: Helvetica, sans-serif;
+}
+
+.text-green-600 {
+  color: rgb(35, 160, 80);
+}
+
+.bg-green-600 {
+  background: rgb(35, 160, 80);
+}

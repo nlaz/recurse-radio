@@ -12,9 +12,11 @@
     "node": ">=21.0.0"
   },
   "dependencies": {
-    "mp3-parser": "nlaz/mp3-parser",
-    "throttler": "nlaz/throttler",
     "body-parser": "^1.20.3",
-    "polka": "^0.5.2"
+    "polka": "^0.5.2",
+    "polka-ejs": "^1.0.1",
+    "serve-static": "^1.16.2",
+    "mp3-parser": "nlaz/mp3-parser",
+    "throttler": "nlaz/throttler"
   }
 }

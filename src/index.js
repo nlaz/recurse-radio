@@ -1,15 +1,22 @@
 import polka from 'polka';
+import path from 'path';
 import parser from 'body-parser';
+import ejs from 'polka-ejs';
 import Radio from './radio.js';
 
 let radio;
 let activeRequests = 0;
 
+const dir = path.join(__dirname, '..', 'public');
+const serve = require('serve-static')(dir);
 const port = process.env.NODE_ENV === 'production' ? 80 : 3000;
 
 const logActiveRequests = () => console.log(`Active requests: ${activeRequests}`);
 
-const server = polka().use(parser.json());
+const server = polka()
+  .use(serve)
+  .use(parser.json())
+  .use(ejs({ ext: "html" }));
 
 server.post('/trigger', (req, res) => {
   const { message, model } = req.body;
@@ -20,7 +27,11 @@ server.post('/trigger', (req, res) => {
   res.end('Triggered');
 });
 
-server.get('/', (req, res) => {
+server.get("/", (req, res) => {
+  res.render("index");
+})
+
+server.get('/radio', (req, res) => {
   activeRequests++;
   logActiveRequests();
 
@@ -36,8 +47,7 @@ server.get('/', (req, res) => {
     'Access-Control-Allow-Methods': 'GET, OPTIONS, HEAD',
     'Content-Type': 'audio/mpeg',
     'Cache-Control': 'no-cache, no-store',
-    Connection: 'close',
-    Expires: 'Mon, 26 Jul 1997 05:00:00 GMT',
+    'Transfer-Encoding': 'chunked',
   });
 
   passthrough.on('data', (chunk) => {

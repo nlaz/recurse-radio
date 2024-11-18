@@ -117,7 +117,7 @@ class Radio {
     this.piper.stdout.pipe(this.voice.stdin);
     this.silentProcessKilled = false;
 
-    this.voice.stdout.on('data', (data) => writeVoiceToPassthrough(data));
+    this.voice.stdout.on('data', (data) => this.writeVoiceToPassthrough(data));
     this.voice.on('close', () => this.startSilentProcess());
   }
 
