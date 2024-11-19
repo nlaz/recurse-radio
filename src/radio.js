@@ -104,7 +104,7 @@ class Radio {
   }
 
   setupPiperProcessHandlers() {
-    this.voice = ffmpeg.startVoiceProcess();
+    this.voice = ffmpeg.startPiperVoiceProcess();
     this.piper.stdout.pipe(this.voice.stdin);
     this.silentProcessKilled = false;
 

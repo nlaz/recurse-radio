@@ -14,7 +14,7 @@ export const startSystemAudioProcess = () => {
     '-i', 'pipe:0',
     '-af', 'volume=0.3',
     '-nodisp'
-  ]);
+  ], { name: 'ffplaySystemAudio' });
 };
 
 export const startSilentProcess = () => {
@@ -28,7 +28,7 @@ export const startSilentProcess = () => {
     '-ac', '2',
     '-preset', 'ultrafast',
     'pipe:1',
-  ]);
+  ], { name: 'ffmpegSilentProcess' });
 };
 
 export const startFilterProcess = (filepath) => {
@@ -54,7 +54,7 @@ export const startFilterProcess = (filepath) => {
     '-tune', 'zerolatency',
     '-f', 'mp3',
     'pipe:1',
-  ]);
+  ], { name: 'ffmpegFilterProcess' });
 };
 
 export const startVoiceProcess = () => {
@@ -66,7 +66,7 @@ export const startVoiceProcess = () => {
     '-ac', '2',
     '-preset', 'ultrafast',
     'pipe:1'
-  ]);
+  ], { name: 'ffmpegVoiceProcess' });
 };
 
 export const startPiperVoiceProcess = () => {
@@ -80,7 +80,7 @@ export const startPiperVoiceProcess = () => {
     '-ar', '44100',
     '-ac', '2',
     'pipe:1'
-  ]);
+  ], { name: 'ffmpegPiperProcess' });
 };
 
 export const killProcess = (process) => {
