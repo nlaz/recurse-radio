@@ -5,7 +5,7 @@
   "scripts": {
     "build": "bun build src/index.js --minify --outdir build --target bun",
     "start": "bun src/index.js",
-    "device": "NODE_ENV=production node src/index.js",
+    "device": "NODE_ENV=production bun src/index.js",
     "dev": "bun --watch --no-warnings src/index.js"
   },
   "engines": {
