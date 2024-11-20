@@ -2,7 +2,7 @@ import fs from 'fs';
 
 const POSSIBLE_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
 
-export const BITRATE = 196 * 1000;
+export const BITRATE = 196 * 1024;
 
 export function generateSessionId() {
   const numPossible = POSSIBLE_CHARS.length;

@@ -1,23 +1,28 @@
 import Broadcast from './broadcast.js';
 import { spawn } from 'child_process';
 import { PassThrough, pipeline } from 'stream';
-import { selectRandomTrack } from './utils.js';
+import { Throttler } from 'throttler';
+import { selectRandomTrack, BITRATE } from './utils.js';
 import * as ffmpeg from './ffmpeg.js';
 
 class Radio {
   constructor() {
-    this.broadcast = new Broadcast();
     this.currentTrack = null;
+    this.broadcast = new Broadcast();
+    this.throttler = new Throttler({ bps: BITRATE / 8, chunkSize: 245 });
     this.filter = null;
     this.silent = null;
-    this.passthrough = null;
+    this.input = null;
+    this.output = null;
     this.system = null;
-    this.currentTrack = null;
+    this.throttler.pipe(this.broadcast);
     this.start();
   }
 
   async start() {
     try {
+      this.input = new PassThrough();
+      this.output = new PassThrough();
       await this.initializeStreams();
       await this.setupPipelines();
     } catch (error) {
@@ -26,7 +31,6 @@ class Radio {
   }
 
   async initializeStreams() {
-    this.passthrough = new PassThrough();
     const { currentTrack, filepath } = selectRandomTrack();
 
     this.currentTrack = currentTrack;
@@ -38,12 +42,10 @@ class Radio {
   }
 
   async setupPipelines() {
-    const outputStream = new PassThrough();
-
-    this.passthrough.pipe(this.filter.stdin);
-    this.filter.stdout.pipe(outputStream);
-    outputStream.pipe(this.broadcast);
-    // outputStream.pipe(this.system.stdin);
+    this.input.pipe(this.filter.stdin);
+    this.filter.stdout.pipe(this.output, { end: false });
+    this.output.pipe(this.throttler, { end: false });
+    // this.throttler.pipe(this.system.stdin);
   }
 
   subscribe() {
@@ -65,34 +67,34 @@ class Radio {
   }
 
   startSilentProcess() {
-    this.silentProcess = ffmpeg.startSilentProcess();
+    this.silent = ffmpeg.startSilentProcess();
 
-    this.silentProcess.stdout.pipe(this.passthrough, { end: false });
-    this.silentProcess.on('error', console.error);
+    this.silent.stdout.pipe(this.input, { end: false });
+    this.silent.on('error', console.error);
 
-    return this.silentProcess;
+    return this.silent;
   }
 
   startFilterProcess(filepath) {
-    if (this.filterProcess) {
-      this.filterProcess.kill('SIGKILL');
+    if (this.filter) {
+      this.filter.kill('SIGKILL');
     }
-    this.filterProcess = ffmpeg.startFilterProcess(filepath);
+    this.filter = ffmpeg.startFilterProcess(filepath);
 
-    this.filterProcess.on('error', console.error);
-    this.filterProcess.on('close', () => this.stop());
+    this.filter.on('error', console.error);
+    this.filter.on('close', () => this.stop());
 
-    return this.filterProcess;
+    return this.filter;
   }
 
   startVoiceProcess() {
     console.log('Starting voice process...');
-    if (this.silentProcess) {
-      this.silentProcess.kill();
+    if (this.silent) {
+      this.silent.kill();
     }
 
     this.voiceProcess = ffmpeg.startVoiceProcess();
-    this.voiceProcess.stdout.pipe(this.passthrough, { end: false });
+    this.voiceProcess.stdout.pipe(this.input, { end: false });
     this.voiceProcess.on('close', () => this.startSilentProcess());
     this.voiceProcess.on('error', console.error);
   }
@@ -117,7 +119,7 @@ class Radio {
       this.silent.kill();
       this.silentProcessKilled = true;
     }
-    this.passthrough.write(data);
+    this.input.write(data);
   }
 
   triggerVoiceProcess = (message, model) => {
@@ -150,10 +152,10 @@ class Radio {
   }
 
   cleanupStreams() {
-    if (this.passthrough) {
-      this.passthrough.unpipe();
-      this.passthrough.destroy();
-      this.passthrough = null;
+    if (this.input) {
+      this.input.unpipe();
+      this.input.destroy();
+      this.input = null;
     }
 
     if (this.broadcast) {
@@ -162,19 +164,19 @@ class Radio {
   }
 
   cleanupProcesses() {
-    if (this.silentProcess) {
-      ffmpeg.killProcess(this.silentProcess);
-      this.silentProcess = null;
+    if (this.silent) {
+      ffmpeg.killProcess(this.silent);
+      this.silent = null;
     }
 
-    if (this.systemAudioProcess) {
-      ffmpeg.killProcess(this.systemAudioProcess);
-      this.systemAudioProcess = null;
+    if (this.system) {
+      ffmpeg.killProcess(this.system);
+      this.system = null;
     }
 
-    if (this.filterProcess) {
-      ffmpeg.killProcess(this.filterProcess);
-      this.filterProcess = null;
+    if (this.filter) {
+      ffmpeg.killProcess(this.filter);
+      this.filter = null;
     }
   }
 }
