@@ -9,7 +9,7 @@ class Radio {
   constructor() {
     this.currentTrack = null;
     this.broadcast = new Broadcast();
-    this.throttler = new Throttler({ bps: BITRATE / 8, chunkSize: 245 });
+    this.throttler = new Throttler({ bps: BITRATE / 8, chunkSize: 122 });
     this.filter = null;
     this.silent = null;
     this.input = null;
@@ -43,7 +43,7 @@ class Radio {
 
   async setupPipelines() {
     this.input.pipe(this.filter.stdin);
-    this.filter.stdout.pipe(this.output, { end: false });
+    this.filter.stdout.pipe(this.output);
     this.output.pipe(this.throttler, { end: false });
     // this.throttler.pipe(this.system.stdin);
   }
@@ -156,6 +156,12 @@ class Radio {
       this.input.unpipe();
       this.input.destroy();
       this.input = null;
+    }
+
+    if (this.output) {
+      this.output.unpipe();
+      this.output.destroy();
+      this.output = null;
     }
 
     if (this.broadcast) {
