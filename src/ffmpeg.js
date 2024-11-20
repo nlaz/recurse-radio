@@ -22,11 +22,10 @@ export const startSilentProcess = () => {
   return spawn('ffmpeg', [
     '-re',
     '-stream_loop', '-1',
-    '-i', './lib/silence.mp3',
+    '-i', './lib/silent_2.mp3',
     '-f', 'mp3',
-    '-ar', '44100',
-    '-ac', '2',
-    '-preset', 'ultrafast',
+    '-ar', '22050',
+    '-ac', '1',
     'pipe:1',
   ]);
 };
@@ -62,7 +61,7 @@ export const startVoiceProcess = () => {
   return spawn('ffmpeg', [
     '-i', './lib/bumper.mp3',
     '-f', 'mp3',
-    '-ar', '44100',
+    '-ar', '22050',
     '-ac', '2',
     '-preset', 'ultrafast',
     'pipe:1'
@@ -77,8 +76,8 @@ export const startPiperVoiceProcess = () => {
     '-ac', '1',
     '-i', 'pipe:0',
     '-f', 'mp3',
-    '-ar', '44100',
-    '-ac', '2',
+    '-ar', '22050',
+    '-ac', '1',
     'pipe:1'
   ]);
 };
