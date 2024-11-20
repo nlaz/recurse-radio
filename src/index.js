@@ -5,7 +5,6 @@ import ejs from 'polka-ejs';
 import Radio from './radio.js';
 
 let radio;
-let activeRequests = 0;
 
 const dir = path.join(__dirname, '..', 'public');
 const serve = require('serve-static')(dir);
@@ -20,6 +19,10 @@ server.get("/", (req, res) => {
   res.render("index");
 });
 
+server.get('/admin', (req, res) => {
+  res.render('admin');
+});
+
 server.get('/info', (req, res) => {
   res.writeHead(200, { 'Content-Type': 'application/json' });
   res.end(JSON.stringify({
@@ -28,9 +31,19 @@ server.get('/info', (req, res) => {
   }));
 });
 
+server.post('/next', (req, res) => {
+  console.log('Calling next track...');
+  radio.next();
+  res.writeHead(200, { 'Content-Type': 'application/json' });
+  res.end(JSON.stringify({
+    currentTrack: radio.currentTrack,
+    listeners: radio.listeners(),
+  }));
+});
+
 server.post('/trigger', (req, res) => {
-  const { message, model } = req.body;
   console.log('Triggering voice process...');
+  const { message, model } = req.body;
   radio.triggerVoiceProcess(message, model);
 
   res.writeHead(200);
@@ -44,9 +57,9 @@ server.get('/radio', (req, res) => {
 
   res.writeHead(200, {
     'Access-Control-Allow-Methods': 'GET, OPTIONS, HEAD',
-    'Content-Type': 'audio/mpeg',
-    'Cache-Control': 'no-cache, no-store',
+    'Cache-Control': 'no-cache, no-store, must-revalidate',
     'Transfer-Encoding': 'chunked',
+    'Content-Type': 'audio/mpeg',
   });
 
   passthrough.on('data', (chunk) => {

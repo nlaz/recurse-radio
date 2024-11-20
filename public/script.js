@@ -16,6 +16,11 @@ const updateTrack = () => {
   });
 }
 
+const nextTrack = () => {
+  console.log('nextTrack');
+  fetch('/next', { method: 'POST' });
+}
+
 const initializeAnalyzer = () => {
   if (isAnalyzerInitialized) return;
 

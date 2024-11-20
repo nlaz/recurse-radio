@@ -32,7 +32,7 @@ class Broadcast extends Writable {
 
   write(chunk) {
     this.chunkBuffer.push(chunk);
-    if (this.chunkBuffer.length > this.maxBufferSize) {
+    if (this.chunkBuffer.length > this.bufferSize) {
       this.chunkBuffer.shift();
     }
 

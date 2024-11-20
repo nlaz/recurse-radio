@@ -6,7 +6,6 @@
   src: url(/fonts/LibreBaskerville-Regular.ttf) format("truetype");
 }
 
-
 @font-face {
   font-family: "IBMPlexMono-Regular";
   font-style: normal;
@@ -19,6 +18,12 @@
   font-style: normal;
   font-weight: 400;
   src: url(/fonts/IBMPlexSans-Regular.ttf) format("truetype");
+}
+
+button {
+  background: inherit;
+  border: inherit;
+  padding: inherit;
 }
 
 .librebaskerville {

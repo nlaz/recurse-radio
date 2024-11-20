@@ -130,6 +130,10 @@ class Radio {
     }
   };
 
+  async next() {
+    this.filter.kill();
+  }
+
   async stop() {
     let timer;
     try {

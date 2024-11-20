@@ -16,12 +16,15 @@
       </div>
       <img onclick="playAudio()" src="radio.png" alt="Radio" class="w-20 h-20 mb-4 mt-4 z-10 cursor-pointer" />
       <h1 class="text-center librebaskerville text-lg mb-2 text-green-600">Recurse Radio</h1>
-      <p class="mx-4 text-black text-sm text-justify">Thanks for tuning in! Recurse Radio is a radio station that lives at the Recurse Center in Brooklyn. The entire service runs locally on a Raspberry Pi. <a class="cursor-pointer hover:underline" href="https://github.com/nlaz/recurse-radio">Learn more...</a></p>
+      <div class="px-4 text-black text-sm flex justify-center w-full">
+          <button class="border rounded-md px-2 py-[1px] shadow-sm hover:shadow-none" onclick="nextTrack()">Next track</button>
+      </div>
       <div class="flex justify-center text-green-600 text-sm absolute bottom-[-38px]">
-        <a href="https://github.com/nlaz/recurse-radio">Source</a> ∙ <a href="/admin">Admin</a>
+        <a href="https://github.com/nlaz/recurse-radio">Source</a> ∙ <a href="/">Home</a>
       </div>
       <canvas id="visualizer" width="303" height="80" class="mt-4"></canvas>
     </div>
     <audio controls preload="none" id="audio" src="/radio" class="hidden" />
   </body>
+
 </html>
