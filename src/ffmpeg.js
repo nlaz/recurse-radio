@@ -1,6 +1,6 @@
 import { spawn } from 'child_process';
 
-const THRESHOLD = 0.02;
+const THRESHOLD = 0.2;
 const RATIO = 4;
 const ATTACK = 20;
 const RELEASE = 300;
