@@ -5,36 +5,56 @@ const RATIO = 4;
 const ATTACK = 10;
 const RELEASE = 400;
 
+const logProcess = (name, prc) => {
+  if (process.env.LOG_LEVEL !== "verbose") return prc;
+
+  console.log(`[${name}] Process started with PID: ${prc.pid}`);
+
+  prc.stderr.on('data', (data) => {
+    console.error(`[${name}] stderr: ${data.toString()}`);
+  });
+
+  prc.on('close', (code) => {
+    console.log(`[${name}] Process exited with code ${code}`);
+  });
+
+  prc.on('error', (error) => {
+    console.error(`[${name}] Process error: ${error.message}`);
+  });
+
+  return prc;
+};
+
 export const startSystemAudioProcess = () => {
   // prettier-ignore
-  return spawn('ffplay', [
-    '-f', 'mp3',
-    '-ar', '48000',
-    '-ac', '2',
-    '-i', 'pipe:0',
-    '-af', 'volume=0.3',
-    '-nodisp'
-  ]);
+  const process = spawn('ffplay', [
+     '-f', 'mp3',
+     '-ar', '48000',
+     '-ac', '2',
+     '-i', 'pipe:0',
+     '-af', 'volume=0.3',
+     '-nodisp'
+   ]);
+   return logProcess('SystemAudio', process);
 };
 
 export const startSilentProcess = () => {
   // prettier-ignore
-  return spawn('ffmpeg', [
-    '-re',
-    '-stream_loop', '-1',
-    '-i', './lib/silent_2.mp3',
-    '-f', 'mp3',
-    '-ar', '22050',
-    '-ac', '1',
-    'pipe:1',
-  ]);
+  const process = spawn('ffmpeg', [
+      '-re',
+      '-stream_loop', '-1',
+      '-i', './lib/silent.mp3',
+      '-f', 'mp3',
+      '-ar', '22050',
+      '-ac', '1',
+      'pipe:1',
+    ]);
+    return logProcess('Silent', process);
 };
 
 export const startFilterProcess = (filepath) => {
   // prettier-ignore
-  return spawn('ffmpeg', [
-    '-y',
-    '-loglevel', 'error',
+  const process = spawn('ffmpeg', [
     '-re',
     '-f', 'mp3',
     '-i', 'pipe:0',
@@ -54,11 +74,12 @@ export const startFilterProcess = (filepath) => {
     '-f', 'mp3',
     'pipe:1',
   ]);
+  return logProcess('Filter', process);
 };
 
 export const startVoiceProcess = () => {
   // prettier-ignore
-  return spawn('ffmpeg', [
+  const process =  spawn('ffmpeg', [
     '-i', './lib/bumper.mp3',
     '-f', 'mp3',
     '-ar', '22050',
@@ -66,11 +87,13 @@ export const startVoiceProcess = () => {
     '-preset', 'ultrafast',
     'pipe:1'
   ]);
+
+  return logProcess('Voice', process);
 };
 
 export const startPiperVoiceProcess = () => {
   // prettier-ignore
-  return spawn('ffmpeg', [
+  const proces = spawn('ffmpeg', [
     '-f', 's16le',
     '-ar', '22050',
     '-ac', '1',
@@ -80,6 +103,7 @@ export const startPiperVoiceProcess = () => {
     '-ac', '1',
     'pipe:1'
   ]);
+  return logProcess('PiperVoice', process);
 };
 
 export const killProcess = (process) => {

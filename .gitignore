@@ -43,10 +43,12 @@ build
 *.ts
 *.mp4
 *.mpd
-*.mp3
+# *.mp3
 *.onnx
 *.onnx
 *.onnx.json
 
 .vscode
 .env
+
+tmp

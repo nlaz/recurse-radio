@@ -1,6 +1,7 @@
 import Broadcast from './broadcast.js';
+import Monitor from './monitor.js';
 import { spawn } from 'child_process';
-import { PassThrough, pipeline } from 'stream';
+import { PassThrough } from 'stream';
 import { Throttler } from 'throttler';
 import { selectRandomTrack, BITRATE } from './utils.js';
 import * as ffmpeg from './ffmpeg.js';
@@ -21,8 +22,8 @@ class Radio {
 
   async start() {
     try {
-      this.input = new PassThrough();
-      this.output = new PassThrough();
+      this.input = new Monitor('input.json');
+      this.output = new Monitor('output.json');
       await this.initializeStreams();
       await this.setupPipelines();
     } catch (error) {
