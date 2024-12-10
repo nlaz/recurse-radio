@@ -5,7 +5,7 @@
   "scripts": {
     "build": "bun build src/index.js --minify --outdir build --target bun",
     "start": "bun src/index.js",
-    "verbose": "LOG_LEVEL=verbose bun src/index.js",
+    "verbose": "LOG_LEVEL=verbose bun device",
     "device": "NODE_ENV=production bun src/index.js",
     "dev": "bun --watch --no-warnings src/index.js"
   },
