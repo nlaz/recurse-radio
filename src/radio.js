@@ -5,6 +5,7 @@ import { PassThrough } from 'stream';
 import { Throttler } from 'throttler';
 import { selectRandomTrack, BITRATE } from './utils.js';
 import * as ffmpeg from './ffmpeg.js';
+import { addToMessages } from './messages.js';
 
 class Radio {
   constructor() {
@@ -39,6 +40,7 @@ class Radio {
     this.silent = this.startSilentProcess();
     // this.system = this.startSystemAudioProcess();
 
+    addToMessages(`Now playing: ${currentTrack}`, 'system');
     console.log(`Now playing: ${currentTrack}`, new Date());
   }
 
@@ -131,8 +133,9 @@ class Radio {
     }
   };
 
-  async next() {
-    this.filter.kill();
+  next() {
+    ffmpeg.killProcess(this.filter);
+    this.filter = null;
   }
 
   async stop() {

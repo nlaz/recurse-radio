@@ -3,6 +3,7 @@ import path from 'path';
 import parser from 'body-parser';
 import ejs from 'polka-ejs';
 import Radio from './radio.js';
+import { addToMessages, messages } from './messages.js';
 
 let radio;
 
@@ -13,6 +14,7 @@ const port = process.env.NODE_ENV === 'production' ? 80 : 3000;
 const server = polka()
   .use(serve)
   .use(parser.json())
+  .use(parser.urlencoded({ extended: true }))
   .use(ejs({ ext: "html" }));
 
 server.get("/", (req, res) => {
@@ -21,6 +23,23 @@ server.get("/", (req, res) => {
 
 server.get('/admin', (req, res) => {
   res.render('admin');
+});
+
+server.get("/messages", (req, res) => {
+  return res.render("partials/messages", { messages, layout: false });
+});
+
+server.post("/send-message", (req, res) => {
+  const content = req.body.message;
+
+  if (!content) {
+    res.writeHead(400);
+    return res.end('Message content is required');
+  }
+  radio.triggerVoiceProcess(content, 'kristin');
+
+  const message = addToMessages(content);
+  res.render("partials/message", { message, layout: false });
 });
 
 server.get('/info', (req, res) => {
