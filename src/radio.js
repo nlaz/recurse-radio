@@ -40,7 +40,7 @@ class Radio {
     this.silent = this.startSilentProcess();
     // this.system = this.startSystemAudioProcess();
 
-    addToMessages(`Now playing: ${currentTrack}`, 'system');
+    addToMessages(`Now playing: ${currentTrack}`, { type: 'system' });
     console.log(`Now playing: ${currentTrack}`, new Date());
   }
 

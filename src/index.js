@@ -4,6 +4,7 @@ import parser from 'body-parser';
 import ejs from 'polka-ejs';
 import Radio from './radio.js';
 import { addToMessages, messages } from './messages.js';
+import { generateBanter, generateChatMessage } from './ollama.js';
 
 let radio;
 
@@ -38,7 +39,7 @@ server.post("/send-message", (req, res) => {
   }
   radio.triggerVoiceProcess(content, 'kristin');
 
-  const message = addToMessages(content);
+  const message = addToMessages(content, { type: "user" });
   res.render("partials/message", { message, layout: false });
 });
 
@@ -64,6 +65,21 @@ server.post('/trigger', (req, res) => {
   console.log('Triggering voice process...');
   const { message, model } = req.body;
   radio.triggerVoiceProcess(message, model);
+
+  res.writeHead(200);
+  res.end('Triggered');
+});
+
+server.post("/trigger-chat", async (req, res) => {
+
+  const content = await generateBanter(radio);
+
+  console.log('message', content);
+
+  content.script.forEach(({ host, line }) => {
+    radio.triggerVoiceProcess(line, 'kristin');
+    addToMessages(line, { type: "host", host });
+  });
 
   res.writeHead(200);
   res.end('Triggered');

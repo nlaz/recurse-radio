@@ -4,8 +4,8 @@
         <span class="ml-2 text-gray-800/40"><%= message.timestamp %></span>
     </div>
 <% } else if (message.type === "user") { %>
-    <div class="px-4 py-2 mt-3 mb-3 w-full flex">
-        <img src="ollie.jpg" class="mr-3 w-[30px] h-[30px] rounded-full object-contain" />
+    <div class="px-4 py-2 mt-2 mb-2 w-full flex">
+        <img src="avatars/ollie.jpg" class="mr-3 w-[32px] h-[32px] rounded-full object-contain" />
         <div class="flex flex-col flex-start">
             <div class="flex text-xs">
                 <div class="font-bold mr-2">Ollie the Octobot</div>
@@ -15,8 +15,14 @@
         </div>
     </div>
 <% } else { %>
-    <div class="px-40 py-2 bg-gray-100 rounded-lg mb-2 w-full">
-        <span class="text-xs text-gray-500"><%= message.timestamp %></span>
-        <p class="text-sm"><%= message.content %></p>
+    <div class="px-4 py-2 mt-2 mb-2 w-full flex">
+        <img src="avatars/<%= message.host.toLowerCase() %>.png" class="mr-3 w-[32px] h-[32px] rounded-full bg-green-500/50" />
+        <div class="flex flex-col flex-start">
+            <div class="flex text-xs">
+                <div class="font-bold mr-2"><%= message.host %></div>
+                <span class="text-xs text-gray-800/40"><%= message.timestamp %></span>
+            </div>
+            <p class="text-sm"><%= message.content %></p>
+        </div>
     </div>
 <% } %>

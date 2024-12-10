@@ -9,10 +9,11 @@ export const messages = [
   },
 ];
 
-export const addToMessages = (content, type = 'user') => {
+export const addToMessages = (content, { type = 'user', host = 'Ollie' }) => {
   const message = {
     id: Date.now(),
     type,
+    host,
     content,
     timestamp: new Date().toLocaleTimeString()
   };
