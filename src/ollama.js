@@ -30,5 +30,10 @@ export const generateBanter = async (radio) => {
 
   console.log(response.message.content);
 
-  return JSON.parse(response.message.content);
+  try {
+    return JSON.parse(response.message.content);
+  } catch (error) {
+    console.error('Error parsing JSON:', error);
+    return { script: [] };
+  }
 }
