@@ -1,5 +1,4 @@
 import Broadcast from './broadcast.js';
-import Monitor from './monitor.js';
 import { spawn } from 'child_process';
 import { PassThrough } from 'stream';
 import { Throttler } from 'throttler';
@@ -23,8 +22,8 @@ class Radio {
 
   async start() {
     try {
-      this.input = new Monitor('input.json');
-      this.output = new Monitor('output.json');
+      this.input = new PassThrough();
+      this.output = new PassThrough();
       await this.initializeStreams();
       await this.setupPipelines();
     } catch (error) {

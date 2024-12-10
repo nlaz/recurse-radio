@@ -95,7 +95,7 @@ export const startPiperVoiceProcess = () => {
     '-ar', '22050',
     '-ac', '1',
     '-i', 'pipe:0',
-    '-af', 'adelay=600',
+    '-af', 'adelay=400',
     '-f', 'mp3',
     '-ar', '22050',
     '-ac', '1',

@@ -1,7 +1,7 @@
 import ollama from 'ollama';
 
 // Match pattern: Name: "dialogue" or Name: dialogue
-const isDialogueFormat = input.split('\n').every((line) => {
+const isDialogueFormat = input => input.split('\n').every((line) => {
   const trimmedLine = line.trim();
   if (trimmedLine === '') return true;
 
