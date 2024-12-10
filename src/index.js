@@ -70,14 +70,27 @@ server.post('/trigger', (req, res) => {
   res.end('Triggered');
 });
 
+const getVoiceForHost = (host) => {
+  if (host === "Harriet") {
+    return "amy";
+  } else {
+    return "bryce";
+  }
+}
+
 server.post("/trigger-chat", async (req, res) => {
 
   const content = await generateBanter(radio);
 
+  if (!content) {
+    res.writeHead(500);
+    return res.end('Message generated failed');
+  }
+
   console.log('message', content);
 
   content.script.forEach(({ host, line }) => {
-    radio.triggerVoiceProcess(line, 'kristin');
+    radio.triggerVoiceProcess(line, getVoiceForHost(host));
     addToMessages(line, { type: "host", host });
   });
 
