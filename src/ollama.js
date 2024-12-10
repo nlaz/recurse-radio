@@ -27,7 +27,7 @@ const fixAndParseJson = (str) => {
 };
 
 const parseDialogue = (text) => {
-  const lines = text.split('\n');
+  const lines = text.trim().split('\n');
   const script = lines.map((line) => {
     const [host, ...rest] = line.split(':');
     const dialogue = rest.join(':').trim();
@@ -37,7 +37,7 @@ const parseDialogue = (text) => {
       host: host.trim(),
       line: cleanLine,
     };
-  });
+  }).filter(line => line.host.length > 0);
 
   return { script };
 };
@@ -84,8 +84,9 @@ export const generateBanter = async (radio) => {
       { role: 'system', content: 'You are an AI assistant providing the script for two dj radio hosts named Harriet and Wolfgang working for the Recurse Radio. You are concise, witty, and upbeat.'},
       { role: 'system', content: 'Context: Recurse Center is programmer retreat in New York focused on programming.' },
       { role: 'system', content: 'Context: The current track is ' + radio.currentTrack },
-      { role: 'system', content: 'Provide the response in the following JSON format: { script: [{ host: <host>, line: <line> }]}'},
+      { role: 'system', content: 'Provide the response in script format.'},
       { role: 'user', content: 'Provide some banter between the two hosts. Keep it concise and under 30 words.' },
+      { role: 'assistant', content: 'Here\'s some short banter:' }
     ],
   })
 
